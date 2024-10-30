@@ -136,6 +136,52 @@ curl -H "Authorization: Bearer <token-value>" -X DELETE https://<service>/api/to
 ```
 
 
+## OAuth2ScopePermission Check
+
+ansible_base.oauth2_provider defines a system check that checks all APIView
+classes for an instance of OAuth2ScopePermission in its permission_classes
+attribute.
+
+### Running the check
+
+You can run the check by running the management command:
+`check --deploy --tag oauth2_permissions`.
+
+Examples:
+```shell
+# Run check for on all view classes enabled for the application
+./manage.py check --deploy --tag oauth2_permissions
+# Using the django-admin executable
+django-admin check --deploy --tag oauth2_permissions
+# For only checking views defined by the test app django application
+django-admin check --deploy --tag oauth2_permissions test_app
+```
+
+### Ignoring Views
+
+Some views do not need OAuth2ScopePermission, such as when the AllowAny
+permission class is used by the APIView class; Adding OAuth2ScopePermission
+will only break the view in this case.
+
+For such cases, a ANSIBLE_BASE_OAUTH2_PROVIDER_PERMISSIONS_CHECK_IGNORED_VIEWS exists
+to set ignores for views by their module path. For DAB views, these ignores
+should be set automatically via dynamic settings logic. To add more ignores,
+you can set the ignore list in your settings.py prior to calling the dynamic
+settings logic:
+
+```python
+ANSIBLE_BASE_OAUTH2_PROVIDER_PERMISSIONS_CHECK_IGNORED_VIEWS = [
+    'ansible_base.resource_registry.views.ValidateLocalUserView',
+    'test_app.views.SomeOtherViewSet',
+]
+```
+
+To clear ignores, change the default ignores list after calling the dynamic
+settings logic:
+```python
+ANSIBLE_BASE_OAUTH2_PROVIDER_PERMISSIONS_CHECK_DEFAULT_IGNORED_VIEWS = []
+```
+
 ## More Information
 
 #### Managing OAuth2 Applications and Tokens
