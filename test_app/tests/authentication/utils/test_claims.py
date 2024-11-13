@@ -388,11 +388,90 @@ def test_create_claims_revoke(local_authenticator_map, process_function, trigger
         ({"foo": "bar"}, ["foo"], claims.TriggerResult.SKIP),
     ],
 )
-def test_process_groups(trigger_condition, groups, has_access):
+def test_process_groups(trigger_condition, groups, has_access, local_authenticator):
     """
     Test the process_groups function.
     """
-    res = claims.process_groups(trigger_condition, groups, authenticator_id=1337)
+    res = claims.process_groups(trigger_condition, groups, authenticator=local_authenticator)
+    assert res is has_access
+
+
+@pytest.mark.parametrize(
+    "trigger_condition, groups, has_access",
+    [
+        # has_or
+        ({"has_or": ["cn=admins,ou=groups,dc=example,dc=org"]}, ["cn=admins,ou=groups,dc=example,dc=org"], claims.TriggerResult.ALLOW),
+        ({"has_or": ["cn=admins,ou=groups,dc=example,dc=org"]}, ["Cn=admins,OU=groups,dC=example,dc=org"], claims.TriggerResult.ALLOW),
+        (
+            {"has_or": ["cn=admins,ou=groups,dc=example,dc=org"]},
+            ["Cn=admins,OU=groups,dC=example,dc=org", "Cn=unpriv,OU=groups,dC=example,dc=org"],
+            claims.TriggerResult.ALLOW,
+        ),
+        (
+            {"has_or": ["cn=admins,ou=groups,dc=example,dc=org", "Cn=unpriv,OU=groups,dC=example,dc=org"]},
+            ["Cn=admins,OU=groups,dC=example,dc=org"],
+            claims.TriggerResult.ALLOW,
+        ),
+        (
+            {"has_or": ["cn=admins,ou=groups,dc=example,dc=org", "Cn=unpriv,OU=groups,dC=example,dc=org"]},
+            ["Cn=unpriv,OU=groups,dC=example,dc=org"],
+            claims.TriggerResult.ALLOW,
+        ),
+        ({"has_or": ["cn=admins,ou=groups,dc=example,dc=org", "foo"]}, ["cn=admins,ou=groups,dc=example,dc=org", "foo"], claims.TriggerResult.ALLOW),
+        ({"has_or": ["cn=admins,ou=groups,dc=example,dc=org"]}, ["Cn=unpriv,OU=groups,dC=example,dc=org"], claims.TriggerResult.SKIP),
+        ({"has_or": ["cn=Admins,ou=groups,dc=example,dc=org"]}, ["Cn=admins,OU=groups,dC=example,dc=org"], claims.TriggerResult.SKIP),
+        ({"has_or": ["foo"]}, ["cn=admins,OU=groups,dc=example,dc=org", "foo"], claims.TriggerResult.ALLOW),
+        # has_and
+        ({"has_and": ["cn=admins,ou=groups,dc=example,dc=org"]}, ["cn=admins,ou=groups,dc=example,dc=org"], claims.TriggerResult.ALLOW),
+        ({"has_and": ["cn=admins,ou=groups,dc=example,dc=org"]}, ["Cn=admins,OU=groups,dC=example,dc=org"], claims.TriggerResult.ALLOW),
+        (
+            {"has_and": ["cn=admins,ou=groups,dc=example,dc=org"]},
+            ["Cn=admins,OU=groups,dC=example,dc=org", "Cn=unpriv,OU=groups,dC=example,dc=org"],
+            claims.TriggerResult.ALLOW,
+        ),
+        (
+            {"has_and": ["cn=admins,ou=groups,dc=example,dc=org", "Cn=unpriv,OU=groups,dC=example,dc=org"]},
+            ["Cn=admins,OU=groups,dC=example,dc=org"],
+            claims.TriggerResult.SKIP,
+        ),
+        (
+            {"has_and": ["cn=admins,ou=groups,dc=example,dc=org", "Cn=unpriv,OU=groups,dC=example,dc=org"]},
+            ["Cn=unpriv,OU=groups,dC=example,dc=org"],
+            claims.TriggerResult.SKIP,
+        ),
+        ({"has_and": ["cn=admins,ou=groups,dc=example,dc=org", "foo"]}, ["cn=admins,ou=groups,dc=example,dc=org", "foo"], claims.TriggerResult.ALLOW),
+        ({"has_and": ["cn=admins,ou=groups,dc=example,dc=org"]}, ["Cn=unpriv,OU=groups,dC=example,dc=org"], claims.TriggerResult.SKIP),
+        ({"has_and": ["cn=Admins,ou=groups,dc=example,dc=org"]}, ["Cn=admins,OU=groups,dC=example,dc=org"], claims.TriggerResult.SKIP),
+        ({"has_and": ["foo"]}, ["Cn=admins,OU=groups,dC=example,dc=org"], claims.TriggerResult.SKIP),
+        # has_not
+        ({"has_not": ["cn=admins,ou=groups,dc=example,dc=org"]}, ["cn=admins,ou=groups,dc=example,dc=org"], claims.TriggerResult.SKIP),
+        ({"has_not": ["cn=admins,ou=groups,dc=example,dc=org"]}, ["Cn=admins,OU=groups,dC=example,dc=org"], claims.TriggerResult.SKIP),
+        (
+            {"has_not": ["cn=admins,ou=groups,dc=example,dc=org"]},
+            ["Cn=admins,OU=groups,dC=example,dc=org", "Cn=unpriv,OU=groups,dC=example,dc=org"],
+            claims.TriggerResult.SKIP,
+        ),
+        (
+            {"has_not": ["cn=admins,ou=groups,dc=example,dc=org", "Cn=unpriv,OU=groups,dC=example,dc=org"]},
+            ["Cn=admins,OU=groups,dC=example,dc=org"],
+            claims.TriggerResult.SKIP,
+        ),
+        (
+            {"has_not": ["cn=admins,ou=groups,dc=example,dc=org", "Cn=unpriv,OU=groups,dC=example,dc=org"]},
+            ["Cn=unpriv,OU=groups,dC=example,dc=org"],
+            claims.TriggerResult.SKIP,
+        ),
+        ({"has_not": ["cn=admins,ou=groups,dc=example,dc=org", "foo"]}, ["cn=admins,ou=groups,dc=example,dc=org", "foo"], claims.TriggerResult.SKIP),
+        ({"has_not": ["cn=admins,ou=groups,dc=example,dc=org"]}, ["Cn=unpriv,OU=groups,dC=example,dc=org"], claims.TriggerResult.ALLOW),
+        ({"has_not": ["cn=Admins,ou=groups,dc=example,dc=org"]}, ["Cn=admins,OU=groups,dC=example,dc=org"], claims.TriggerResult.ALLOW),
+        ({"has_not": ["foo"]}, ["Cn=admins,OU=groups,dC=example,dc=org"], claims.TriggerResult.ALLOW),
+    ],
+)
+def test_process_groups_ldap(trigger_condition, groups, has_access, ldap_authenticator):
+    """
+    Test the process_groups function.
+    """
+    res = claims.process_groups(trigger_condition, groups, authenticator=ldap_authenticator)
     assert res is has_access
 
 

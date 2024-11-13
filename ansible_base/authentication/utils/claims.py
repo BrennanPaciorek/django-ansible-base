@@ -15,6 +15,7 @@ from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from rest_framework.serializers import DateTimeField
 
+from ansible_base.authentication.authenticator_plugins.utils import get_authenticator_plugin
 from ansible_base.authentication.models import Authenticator, AuthenticatorMap, AuthenticatorUser
 from ansible_base.lib.abstract_models import AbstractOrganization, AbstractTeam, CommonModel
 from ansible_base.lib.utils.auth import get_organization_model, get_team_model
@@ -69,7 +70,7 @@ def create_claims(authenticator: Authenticator, username: str, attrs: dict, grou
 
         for trigger_type, trigger in auth_map.triggers.items():
             if trigger_type == 'groups':
-                trigger_result = process_groups(trigger, groups, authenticator.pk)
+                trigger_result = process_groups(trigger, groups, authenticator)
             elif trigger_type == 'attributes':
                 trigger_result = process_user_attributes(trigger, attrs, authenticator.pk)
             elif trigger_type == 'always':
@@ -164,27 +165,29 @@ def _add_rbac_role_mapping(has_permission, role_mapping, role, organization=None
             logger.warning(f"Role mapping is not possible, organization for team '{team}' is missing")
 
 
-def process_groups(trigger_condition: dict, groups: list, authenticator_id: int) -> TriggerResult:
+def process_groups(trigger_condition: dict, groups: list, authenticator: Authenticator) -> TriggerResult:
     """
     Looks at a maps trigger for a group and users groups and determines if the trigger is defined for this user.
     """
 
     invalid_conditions = set(trigger_condition.keys()) - set(TRIGGER_DEFINITION['groups']['keys'].keys())
     if invalid_conditions:
-        logger.warning(f"The conditions {', '.join(invalid_conditions)} for groups in mapping {authenticator_id} are invalid and won't be processed")
+        logger.warning(f"The conditions {', '.join(invalid_conditions)} for groups in mapping {authenticator.pk} are invalid and won't be processed")
+
+    GroupComparisonClass = get_authenticator_plugin(authenticator.type).group_comparison_class
 
     set_of_user_groups = set(groups)
 
     if "has_or" in trigger_condition:
-        if set_of_user_groups.intersection(set(trigger_condition["has_or"])):
+        if GroupComparisonClass.has_or(set(trigger_condition["has_or"]), set_of_user_groups):
             return TriggerResult.ALLOW
 
     elif "has_and" in trigger_condition:
-        if set(trigger_condition["has_and"]).issubset(set_of_user_groups):
+        if GroupComparisonClass.has_and(set(trigger_condition["has_and"]), set_of_user_groups):
             return TriggerResult.ALLOW
 
     elif "has_not" in trigger_condition:
-        if not set(trigger_condition["has_not"]).intersection(set_of_user_groups):
+        if GroupComparisonClass.has_not(set(trigger_condition["has_not"]), set_of_user_groups):
             return TriggerResult.ALLOW
 
     return TriggerResult.SKIP

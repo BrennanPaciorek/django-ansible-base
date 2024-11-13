@@ -1,3 +1,4 @@
+import dataclasses
 import inspect
 import logging
 import re
@@ -12,7 +13,12 @@ from django_auth_ldap.backend import LDAPSettings as BaseLDAPSettings
 from django_auth_ldap.config import LDAPGroupType
 from rest_framework.serializers import ValidationError
 
-from ansible_base.authentication.authenticator_plugins.base import AbstractAuthenticatorPlugin, Authenticator, BaseAuthenticatorConfiguration
+from ansible_base.authentication.authenticator_plugins.base import (
+    AbstractAuthenticatorPlugin,
+    Authenticator,
+    BaseAuthenticatorConfiguration,
+    BaseGroupComparison,
+)
 from ansible_base.authentication.utils.authentication import get_or_create_authenticator_user
 from ansible_base.authentication.utils.claims import update_user_claims
 from ansible_base.lib.serializers.fields import BooleanField, CharField, ChoiceField, DictField, ListField, URLListField, UserAttrMap
@@ -336,7 +342,68 @@ class LDAPSettings(BaseLDAPSettings):
         setattr(self, 'GROUP_TYPE', group_type_class(**defaults['GROUP_TYPE_PARAMS']))
 
 
+@dataclasses.dataclass(frozen=True, eq=True)
+class LDAPGroupDNComponent:
+    component_type: str
+    value: str
+
+
+class LDAPGroupDN:
+    def __init__(self, dn: str):
+        # Super pedantic regex for any combination of dc that
+        self.components = []
+
+        # Cause a ValidationError in the event that the dn is invalid
+        validate_ldap_dn(dn)
+
+        str_components = dn.split(",")
+        for component in str_components:
+            component_parts = component.split("=")
+            self.components.append(LDAPGroupDNComponent(component_type=component_parts[0].lower(), value=component_parts[1]))
+
+        self.components = tuple(self.components)
+
+    def __eq__(self, other) -> bool:
+        return self.components == other.components
+
+    def __hash__(self) -> int:
+        return hash(self.components)
+
+
+class LDAPGroupComparison(BaseGroupComparison):
+    @classmethod
+    def map_sets(cls, condition_groups: set, user_groups: set) -> tuple[set, set]:
+        def map_function(dn: str):
+            try:
+                return LDAPGroupDN(dn)
+            except ValidationError as e:
+                logger.warning(f"Exception caught when validating authenticator_map DNs, treating as a normal string literal: {e.detail}")
+                # We're going to spit this back out as-is to prevent access control vulnerabilies with has_and
+                return dn
+
+        condition_groups_map = set(map(map_function, condition_groups))
+        user_groups_map = set(map(map_function, user_groups))
+
+        return condition_groups_map, user_groups_map
+
+    @classmethod
+    def has_or(cls, condition_groups: set, user_groups: set) -> bool:
+        groups = cls.map_sets(condition_groups, user_groups)
+        return super().has_or(groups[0], groups[1])
+
+    @classmethod
+    def has_and(cls, condition_groups: set, user_groups: set) -> bool:
+        groups = cls.map_sets(condition_groups, user_groups)
+        return super().has_and(groups[0], groups[1])
+
+    @classmethod
+    def has_not(cls, condition_groups: set, user_groups: set) -> bool:
+        groups = cls.map_sets(condition_groups, user_groups)
+        return super().has_not(groups[0], groups[1])
+
+
 class AuthenticatorPlugin(LDAPBackend, AbstractAuthenticatorPlugin):
+    group_comparison_class = LDAPGroupComparison
     configuration_class = LDAPConfiguration
     type = 'LDAP'
     category = "password"

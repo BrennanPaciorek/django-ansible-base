@@ -285,7 +285,7 @@ def ldap_configuration():
 
 
 @pytest.fixture
-def ldap_authenticator(ldap_configuration):
+def ldap_authenticator(db, ldap_configuration):
     from ansible_base.authentication.models import Authenticator
 
     authenticator = Authenticator.objects.create(

@@ -56,12 +56,27 @@ class BaseAuthenticatorConfiguration(serializers.Serializer):
         return schema
 
 
+class BaseGroupComparison:
+    @classmethod
+    def has_or(cls, condition_groups: set, user_groups: set) -> bool:
+        return bool(user_groups.intersection(condition_groups))
+
+    @classmethod
+    def has_and(cls, condition_groups: set, user_groups: set) -> bool:
+        return condition_groups.issubset(user_groups)
+
+    @classmethod
+    def has_not(cls, condition_groups: set, user_groups: set) -> bool:
+        return not bool(user_groups.intersection(condition_groups))
+
+
 class AbstractAuthenticatorPlugin:
     """
     Base class for non social auth backends
     """
 
     configuration_class = BaseAuthenticatorConfiguration
+    group_comparison_class = BaseGroupComparison
     configuration_encrypted_fields = []
 
     def __init__(self, database_instance=None, *args, **kwargs):
