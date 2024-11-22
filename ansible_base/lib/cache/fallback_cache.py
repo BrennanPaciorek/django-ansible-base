@@ -17,6 +17,7 @@ DEFAULT_TIMEOUT = None
 PRIMARY_CACHE = 'primary'
 FALLBACK_CACHE = 'fallback'
 
+
 class DABCacheWithFallback(BaseCache):
     _instance = None
     _primary_cache = None
@@ -45,7 +46,7 @@ class DABCacheWithFallback(BaseCache):
         self.__initialized = True
 
     def get_active_cache(self):
-        return FALLBACK_CACHE if _temp_file.exists() else PRIMARY_CACHE
+        return FALLBACK_CACHE if self._temp_file.exists() else PRIMARY_CACHE
 
     # Main cache interface
     def add(self, key, value, timeout=DEFAULT_TIMEOUT, version=None):
@@ -76,10 +77,10 @@ class DABCacheWithFallback(BaseCache):
                     # Attempt to ensure one thread/process goes first
                     # dynamic settings especially are read in a batch very quickly
                     time.sleep(random.uniform(10, 100) / 100.0)
-                    if not _temp_file.exists():
+                    if not self._temp_file.exists():
                         logger.error("Primary cache unavailable, switching to fallback cache.")
                     self.create_temp_file()
-                    #_temp_file.touch()
+                    # _temp_file.touch()
                 response = getattr(self._fallback_cache, operation)(*args, **kwargs)
 
         return response
@@ -111,5 +112,7 @@ class DABCacheWithFallback(BaseCache):
             self._fallback_cache.delete('RECOVERY_IN_PROGRESS')
 
     def create_temp_file(self):
+        self._temp_path = get_setting('ANSIBLE_BASE_FALLBACK_CACHE_FILE_PATH', tempfile.gettempdir())
+        self._temp_file = Path().joinpath(self._temp_path, 'gw_primary_cache_failed')
         self._temp_file.touch()
         self._temp_file.chmod(mode=0o660)
