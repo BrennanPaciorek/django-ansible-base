@@ -112,7 +112,5 @@ class DABCacheWithFallback(BaseCache):
             self._fallback_cache.delete('RECOVERY_IN_PROGRESS')
 
     def create_temp_file(self):
-        self._temp_path = get_setting('ANSIBLE_BASE_FALLBACK_CACHE_FILE_PATH', tempfile.gettempdir())
-        self._temp_file = Path().joinpath(self._temp_path, 'gw_primary_cache_failed')
         self._temp_file.touch()
         self._temp_file.chmod(mode=0o660)
