@@ -97,8 +97,15 @@ def check_system_username(uid: str) -> None:
 def determine_username_from_uid_social(**kwargs) -> dict:
     backend = kwargs.get('backend', None)
     uid_field = 'username'
-    if backend and hasattr(backend, "setting"):
-        uid_field = backend.setting('ID_KEY', default='username')
+    if backend:
+        # Update our fallback if the authenticator has an ID_KEY field
+        if hasattr(backend, "ID_KEY"):
+            uid_field = backend.ID_KEY
+        # Favor the authenticator configuration variable ID_KEY if present
+        if hasattr(backend, "setting"):
+            uid_field_setting = backend.setting('ID_KEY', default=None)
+            if uid_field_setting is not None:
+                uid_field = uid_field_setting
     selected_username = kwargs.get('details', {}).get(uid_field, None)
     if not selected_username:
         raise AuthException(
