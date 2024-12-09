@@ -223,6 +223,7 @@ class TestAuthenticationUtilsAuthentication:
             ({}, 'username'),
             ({'backend': None}, 'username'),
             ({'backend': SimpleNamespace(ID_KEY="id_key_test_value")}, 'id_key_test_value'),
+            ({'backend': SimpleNamespace(ID_KEY=None)}, 'username'),
         ],
     )
     def test_determine_username_from_uid_social_authenticator_ID_KEY_fallback(self, kwargs, expected_uid_field):
