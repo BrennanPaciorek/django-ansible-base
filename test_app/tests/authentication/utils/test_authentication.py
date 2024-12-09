@@ -18,11 +18,6 @@ def oidc_authenticator_plugin_uid_key_overridden(oidc_authenticator, random_name
     yield (oidc_authenticator, random_name)
 
 
-# Empty class to be patched, so I can parameterize test_determine_username_from_uid_social_authenticator_ID_KEY
-class PlaceholderAuthenticator:
-    pass
-
-
 @pytest.mark.django_db
 class TestAuthenticationUtilsAuthentication:
     logger = 'ansible_base.authentication.utils.authentication.logger'
