@@ -98,8 +98,8 @@ def determine_username_from_uid_social(**kwargs) -> dict:
     backend = kwargs.get('backend', None)
     uid_field = 'username'
     if backend:
-        # Update our fallback if the authenticator has an ID_KEY field
-        if hasattr(backend, "ID_KEY"):
+        # Update our fallback if the authenticator has an ID_KEY field, ignore if ID_KEY is None
+        if getattr(backend, "ID_KEY", None) is not None:
             uid_field = backend.ID_KEY
         # Favor the authenticator configuration variable ID_KEY if present
         if hasattr(backend, "setting"):
