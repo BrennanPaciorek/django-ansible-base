@@ -101,7 +101,7 @@ def determine_username_from_uid_social(**kwargs) -> dict:
     selected_username = kwargs.get('details', {}).get(uid_field, None)
     if not selected_username:
         raise AuthException(
-            _('Unable to get associated username from attribute {uid_field}: %(details)s') % {'uid_field': uid_field, 'details': kwargs.get("details", None)}
+            _('Unable to get associated username from attribute %(uid_field)s: %(details)s') % {'uid_field': uid_field, 'details': kwargs.get("details", None)}
         )
 
     authenticator = kwargs.get('backend')

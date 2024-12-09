@@ -1,14 +1,24 @@
-from types import SimpleNamespace
-
 import pytest
 from django.conf import settings
 from social_core.exceptions import AuthException
 
-from ansible_base.authentication.authenticator_plugins.utils import get_authenticator_class
+from ansible_base.authentication.authenticator_plugins.utils import get_authenticator_class, get_authenticator_plugin
 from ansible_base.authentication.models import AuthenticatorUser
 from ansible_base.authentication.utils import authentication
 from ansible_base.lib.utils.response import get_relative_url
 from test_app.models import User
+
+
+@pytest.fixture
+def oidc_authenticator_plugin_uid_key_overridden(oidc_authenticator, random_name):
+    oidc_authenticator.configuration['ID_KEY'] = random_name
+    oidc_authenticator.save()
+    yield (oidc_authenticator, random_name)
+
+
+# Empty class to be patched, so I can parameterize test_determine_username_from_uid_social_authenticator_ID_KEY
+class PlaceholderAuthenticator:
+    pass
 
 
 @pytest.mark.django_db
@@ -200,16 +210,24 @@ class TestAuthenticationUtilsAuthentication:
         )
         assert response == {'username': 'Bob'}
 
+    def test_determine_username_from_uid_social_authenticator_ID_KEY(self, oidc_authenticator_plugin_uid_key_overridden):
+        backend_authenticator_class, uid_key = oidc_authenticator_plugin_uid_key_overridden
+        backend = get_authenticator_plugin(backend_authenticator_class.type)
+        kwargs = {
+            'backend': backend,
+        }
+        with pytest.raises(AuthException) as ae:
+            authentication.determine_username_from_uid_social(**kwargs)
+        assert f'Unable to get associated username from attribute {uid_key}' in ae.value.backend
+
     @pytest.mark.parametrize(
         "kwargs,expected_uid_field",
         [
             ({}, 'username'),
             ({'backend': None}, 'username'),
-            ({'backend': SimpleNamespace(ID_KEY='testing')}, 'testing'),
-            ({'backend': SimpleNamespace(ID_KEY=None)}, 'testing'),
         ],
     )
-    def test_determine_username_from_uid_social_authenticator_ID_KEY(self, kwargs, expected_uid_field):
+    def test_determine_username_from_uid_social_authenticator_ID_KEY_fallback(self, kwargs, expected_uid_field):
         with pytest.raises(AuthException) as ae:
             authentication.determine_username_from_uid_social(**kwargs)
-            assert f'Unable to get associated username from attribute {expected_uid_field}' in ae
+        assert f'Unable to get associated username from attribute {expected_uid_field}' in ae.value.backend
