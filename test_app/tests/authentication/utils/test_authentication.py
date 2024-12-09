@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import pytest
 from django.conf import settings
 from social_core.exceptions import AuthException
@@ -225,6 +227,7 @@ class TestAuthenticationUtilsAuthentication:
         [
             ({}, 'username'),
             ({'backend': None}, 'username'),
+            ({'backend': SimpleNamespace(ID_KEY="id_key_test_value")}, 'id_key_test_value'),
         ],
     )
     def test_determine_username_from_uid_social_authenticator_ID_KEY_fallback(self, kwargs, expected_uid_field):
