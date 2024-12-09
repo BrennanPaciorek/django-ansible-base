@@ -2,7 +2,7 @@ import pytest
 from django.conf import settings
 from social_core.exceptions import AuthException
 
-from ansible_base.authentication.authenticator_plugins.utils import get_authenticator_class, get_authenticator_plugin
+from ansible_base.authentication.authenticator_plugins.utils import get_authenticator_class
 from ansible_base.authentication.models import AuthenticatorUser
 from ansible_base.authentication.utils import authentication
 from ansible_base.lib.utils.response import get_relative_url
@@ -212,7 +212,7 @@ class TestAuthenticationUtilsAuthentication:
 
     def test_determine_username_from_uid_social_authenticator_ID_KEY(self, oidc_authenticator_plugin_uid_key_overridden):
         backend_authenticator_class, uid_key = oidc_authenticator_plugin_uid_key_overridden
-        backend = get_authenticator_plugin(backend_authenticator_class.type)
+        backend = get_authenticator_class(backend_authenticator_class.type)(database_instance=backend_authenticator_class)
         kwargs = {
             'backend': backend,
         }
