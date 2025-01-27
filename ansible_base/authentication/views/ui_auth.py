@@ -40,7 +40,6 @@ def generate_ui_auth_data():
             response['passwords'].append(
                 {
                     'name': authenticator.name,
-                    'type': authenticator.type,
                 }
             )
         elif authenticator.category == 'sso':
@@ -49,7 +48,6 @@ def generate_ui_auth_data():
                     {
                         'name': authenticator.name,
                         'login_url': authenticator.get_login_url(),
-                        'type': authenticator.type,
                     }
                 )
             except ImportError:

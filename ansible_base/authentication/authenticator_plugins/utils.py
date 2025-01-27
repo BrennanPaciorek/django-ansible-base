@@ -2,9 +2,9 @@ import logging
 from functools import lru_cache
 from glob import glob
 from os.path import basename, isfile, join
-from typing import Optional
 
 from django.conf import settings
+from django.db.models.fields import uuid
 from django.utils.text import slugify
 
 logger = logging.getLogger('ansible_base.authentication.authenticator_plugins.utils')
@@ -53,7 +53,6 @@ def get_authenticator_urls(authenticator_type: str) -> list:
     return []
 
 
-def generate_authenticator_slug(type: str, name: str, suffix: Optional[str] = None) -> str:
-    clean_type = f"{type.replace('.', ' ')}"
-    slug_template = f"{clean_type}__{name}" if not suffix else f"{clean_type}__{name}__{suffix}"
+def generate_authenticator_slug(name: str) -> str:
+    slug_template = f"{name}__{uuid.uuid4()}"
     return slugify(slug_template)
