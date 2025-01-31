@@ -60,9 +60,9 @@ class Authenticator(UniqueNamedCommonModel):
                 self.configuration[field] = ansible_encryption.encrypt_string(self.configuration[field])
 
         if not self.slug:
-            self.slug = generate_authenticator_slug(self.name)
+            self.slug = generate_authenticator_slug()
             if Authenticator.objects.filter(slug=self.slug).count():
-                self.slug = generate_authenticator_slug(self.name)
+                self.slug = generate_authenticator_slug()
         super().save(*args, **kwargs)
 
     def __str__(self):

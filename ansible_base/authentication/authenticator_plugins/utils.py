@@ -53,6 +53,5 @@ def get_authenticator_urls(authenticator_type: str) -> list:
     return []
 
 
-def generate_authenticator_slug(name: str) -> str:
-    slug_template = f"{name}__{uuid.uuid4()}"
-    return slugify(slug_template)
+def generate_authenticator_slug() -> str:
+    return slugify(uuid.uuid4())
