@@ -30,7 +30,13 @@ class Authenticator(UniqueNamedCommonModel):
         default=get_next_authenticator_order,
         help_text="The order in which an authenticator will be tried. This only pertains to username/password authenticators.",
     )
-    slug = fields.SlugField(max_length=1024, default=None, editable=False, unique=True, help_text="An immutable identifier for the authenticator.")
+    slug = fields.SlugField(
+        max_length=1024,
+        default=None,
+        editable=False,
+        unique=True,
+        help_text="An immutable identifier for the authenticator; used to generate the sso uri for sso authenticator types",
+    )
     category = fields.CharField(max_length=30, default=None, help_text="The base type of this authenticator.")
 
     auto_migrate_users_to = ForeignKey(
