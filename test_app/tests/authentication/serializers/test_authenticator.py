@@ -17,7 +17,7 @@ def test_validate_blank_authenticator_slug(shut_up_logging):
 
 
 def test_validate_new_authenticator_slug(shut_up_logging):
-    slug = uuid.uuid4()
+    slug = slugify(uuid.uuid4())
 
     serializer = AuthenticatorSerializer()
     assert serializer.validate_slug(slug) == slugify(slug)
@@ -25,7 +25,7 @@ def test_validate_new_authenticator_slug(shut_up_logging):
 
 @pytest.mark.django_db
 def test_modify_authenticator_slug(ldap_authenticator, shut_up_logging):
-    slug = uuid.uuid4()
+    slug = slugify(uuid.uuid4())
 
     serializer = AuthenticatorSerializer()
     serializer.instance = ldap_authenticator

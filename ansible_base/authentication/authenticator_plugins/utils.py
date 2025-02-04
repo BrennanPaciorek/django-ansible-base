@@ -2,6 +2,7 @@ import logging
 from functools import lru_cache
 from glob import glob
 from os.path import basename, isfile, join
+from typing import Optional
 
 from django.conf import settings
 from django.db.models.fields import uuid
@@ -53,5 +54,7 @@ def get_authenticator_urls(authenticator_type: str) -> list:
     return []
 
 
-def generate_authenticator_slug() -> str:
-    return slugify(uuid.uuid4())
+def generate_authenticator_slug(value: Optional[str] = None) -> str:
+    if not value:
+        value = str(uuid.uuid4())
+    return slugify(value)

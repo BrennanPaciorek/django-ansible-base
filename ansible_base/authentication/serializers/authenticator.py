@@ -1,6 +1,5 @@
 from collections import OrderedDict
 
-from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from rest_framework.serializers import ChoiceField, ValidationError
 
@@ -21,12 +20,9 @@ class AuthenticatorSerializer(NamedCommonModelSerializer, ImmutableFieldsMixin):
         return value
 
     def validate_slug(self, value):
-        value = slugify(value)
+        value = generate_authenticator_slug(value)
         if self.instance and self.instance.slug != value:
             raise ValidationError(_("Cannot change slug after it has been created."))
-        # Set slug to a valid value before anything gets processed
-        elif not value:
-            value = generate_authenticator_slug()
 
         return value
 
